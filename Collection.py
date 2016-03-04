@@ -1,10 +1,12 @@
+import sys
 import Bin
 import DistributionGenerator
-import matplotlib.pyplot as plt
+import multiprocessing as mp
 from copy import deepcopy
-from numba import jit
+import numpy as np
 
 class Collection:
+
 
     def __init__(self):
         self.bins = []
@@ -13,6 +15,7 @@ class Collection:
         self.reservation_percentage = 0.0
         self.infeasible_solutions = 0
         self.dist_gen = DistributionGenerator.DistributionGenerator()
+        self.simulation_number = 0
 
     def describe(self):
         for my_bin in self.bins:
@@ -91,6 +94,7 @@ class Collection:
         return self.infeasible_solutions, len(self.bins)
 
     def plot_errythang(self):
+        import matplotlib.pyplot as plt
         res = [my_bin.reserved_ratio() for my_bin in self.bins]
         con = [my_bin.consumed_ratio() for my_bin in self.bins]
         fig, ax = plt.subplots(1, 1)
@@ -110,14 +114,34 @@ class Collection:
         for job in test_jobs:
             reservations.append((job[0], job[1]*reservation_percentage, True))
         self.firstFit(test_jobs, reservations)
-        #self.describe()
-        #print self.reservation_map
+
+def run_sim(num_jobs, reservation_percentage, simulation_number):
+    c = Collection()
+    print "Running simulation {:} --> {:} jobs @ {:.2%} reservation...".format(simulation_number, num_jobs, reservation_percentage)
+    c.run(num_jobs, reservation_percentage) # run(num_jobs, reservation_percentage)
+    return c.exhaustive_fail()
 
 if __name__ == "__main__":
-    c = Collection()
-    c.run()
-    #c.plot_errythang()
-    #c.fail(0)
-    #c.plot_errythang()
-    #c.describe()
-    print c.exhaustive_fail()
+    # program in invoked as:
+    # python Collection.py <num_jobs> <reservation_percentage> <num_trials> <output_file>
+
+    a = np.zeros(int(sys.argv[3]), dtype=(int, 2))
+    num_jobs = int(sys.argv[1])
+    reservation_percentage = float(sys.argv[2])
+    num_trials = int(sys.argv[3])
+
+    '''
+    pool = mp.Pool(processes=2)
+    results = [pool.apply_async(run_sim, args=(s, pos, 100, per, 5)) for pos, per in reservation_percentages]
+    results = [p.get() for p in results]
+    '''
+
+    pool = mp.Pool(processes=2)
+    procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
+    for i in range(len(procs)):
+        a[i, 0], a[i, 1] = procs[i].get()
+
+
+    with open(sys.argv[4], 'w') as fout:
+        for i in range(len(a)):
+            fout.write(str(a[i, 0]) + ", " + str(a[i, 1]) + "\n")
