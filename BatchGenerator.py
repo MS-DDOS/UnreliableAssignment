@@ -40,6 +40,7 @@ for i in range(40):
         fout.write("module load anaconda/2.2.0\n\n")
         fout.write("python Collection.py {:} {:} {:} {:}".format(str(num_jobs), str(percentage), str(trials), "trials_{:}_{:}_{:}.csv".format(str(trials), int(percentage*100), str(num_jobs))))
     subprocess.call(["sbatch", "./trials_{:}_{:}_{:}.sh".format(str(trials), int(percentage*100), str(num_jobs))])
+    os.chdir("../")
 
 
 
