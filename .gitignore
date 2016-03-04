@@ -1,3 +1,11 @@
 # exclude extraneous files
 .idea/
-!*.py
+*.pyc
+*.png
+*.txt
+*.csv
+*.log
+Job.py
+Simulation.py
+SimulationGui.py
+mplTest.py

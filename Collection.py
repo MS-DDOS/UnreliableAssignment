@@ -136,7 +136,7 @@ if __name__ == "__main__":
     results = [p.get() for p in results]
     '''
 
-    pool = mp.Pool(processes=2)
+    pool = mp.Pool(processes=8)
     procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
     for i in range(len(procs)):
         a[i, 0], a[i, 1] = procs[i].get()
