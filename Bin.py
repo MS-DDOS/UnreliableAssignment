@@ -7,7 +7,7 @@ class UserError(Exception):
 
 
 class Bin:
-    'Container used to hold jobs. Can be seen as a server or data center'
+    """ Container used to hold jobs. Can be seen as a server or data center """
 
     def __init__(self, name="default", capacity=1.0):
         self.name = name

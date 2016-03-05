@@ -1,4 +1,4 @@
-'''
+"""
 #!/bin/bash
 #SBATCH -J sim_n            # job name
 #SBATCH -o sim_n.log        # output and error file name (%j expands to jobID)
@@ -9,7 +9,7 @@
 module load anaconda/2.2.0
 
 python simulation_script args
-'''
+"""
 
 import os
 import subprocess
@@ -31,9 +31,9 @@ for i in range(40):
     os.chdir("./Fragment_" + str(i))
     with open("trials_{:}_{:}_{:}.sh".format(str(trials), int(percentage*100), str(num_jobs)), 'w') as fout:
         fout.write("#!/bin/bash\n")
-        fout.write("#SBATCH -J sim_{:}_".format(int(percentage*100)) + str(num_jobs) + "\n")
-        fout.write("#SBATCH -o sim_{:}_".format(int(percentage*100)) + str(num_jobs) + ".log\n")
-        fout.write("#SBATCH -e sim_{:}_".format(int(percentage*100)) + str(num_jobs) + ".err\n")
+        fout.write("#SBATCH -J sim_{:}_{:}\n".format(int(percentage*100), str(num_jobs)))
+        fout.write("#SBATCH -o sim_{:}_{:}.log\n".format(int(percentage*100), str(num_jobs)))
+        fout.write("#SBATCH -e sim_{:}_{:}.err\n".format(int(percentage*100), str(num_jobs)))
         fout.write("#SBATCH -N 1\n")
         fout.write("#SBATCH --exclusive\n")
         fout.write("#SBATCH -p parallel-medium\n\n")
