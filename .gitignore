@@ -1,5 +1,7 @@
 # exclude extraneous files
 .idea/
+UA/
+fragments/
 UnreliableAssignmentFragments/
 *.pyc
 *.png

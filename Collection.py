@@ -108,7 +108,7 @@ class Collection:
 
     def run(self, _num_jobs, _reservation_percentage):
         # Jobs are represented as a triple (jobId, jobSize, isReservation)
-        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='uniform'), [False for x in range(_num_jobs)])
+        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='normal'), [False for x in range(_num_jobs)])
         reservations = []
         for job in test_jobs:
             reservations.append((job[0], job[1]*_reservation_percentage, True))

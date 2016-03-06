@@ -1,4 +1,5 @@
-from scipy.stats import norm, pareto, uniform
+from scipy.stats import truncnorm, pareto, uniform
+import numpy as np
 
 
 class DistributionGenerator:
@@ -19,7 +20,11 @@ class DistributionGenerator:
         return r
 
     def generate_normal(self, n):
-        return norm(loc=.5, scale=.1).rvs(size=n)
+        lower = 0.0
+        upper = 1.0
+        mean = .5
+        std_dev = .16
+        return truncnorm((lower-mean)/std_dev, (upper-mean)/std_dev, loc=mean, scale=std_dev).rvs(size=n)
 
     def generate_pareto(self, n):
         b = 1.0
