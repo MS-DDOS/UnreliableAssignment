@@ -1,5 +1,6 @@
 from scipy.stats import truncnorm, pareto, uniform
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class DistributionGenerator:
@@ -27,8 +28,25 @@ class DistributionGenerator:
         return truncnorm((lower-mean)/std_dev, (upper-mean)/std_dev, loc=mean, scale=std_dev).rvs(size=n)
 
     def generate_pareto(self, n):
-        b = 1.0
-        return pareto.rvs(b, size=n)
+        b = 1.5
+        to_return = np.zeros(n, dtype=float)
+        for i in range(n):
+            while True:
+                potential_value = pareto.rvs(b, size=1)
+                if potential_value[0] <= 10.0:
+                    to_return[i] = potential_value/10.0
+                    break
+        return to_return
 
     def generate_uniform(self, n):
         return uniform.rvs(size=n)
+
+
+if __name__ == "__main__":
+    x = DistributionGenerator()
+    jobs = x.generate_jobs(1000, distribution_type="pareto")
+    print jobs.max()
+    print jobs.min()
+    plt.hist(jobs)
+    plt.show()
+

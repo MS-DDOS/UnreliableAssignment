@@ -20,7 +20,7 @@ if os.path.isdir("./UnreliableAssignmentFragments"):
 num_jobs = 1000
 step = .025
 base = 0.0
-trials = 1000
+trials = 10000
 percentage = base
 
 os.mkdir("UnreliableAssignmentFragments")
