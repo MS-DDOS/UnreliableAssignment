@@ -3,6 +3,8 @@
 UA/
 fragments/
 UnreliableAssignmentFragments/
+fragments_10000_normal/
+fragments_10000_uniform/
 *.pyc
 *.png
 *.txt

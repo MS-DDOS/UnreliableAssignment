@@ -4,11 +4,12 @@ from scipy.stats import norm
 from math import sqrt
 import matplotlib.pyplot as plt
 
-if not os.path.isdir("./fragments/"):
+if not os.path.isdir("./fragments_10000_normal/"):
     raise ValueError("./fragments/ directory does not exist in the working directory")
 
-dirs = os.listdir("./fragments/")
-result_vector = np.zeros((40, 10000), dtype=float)
+dirs = os.listdir("./fragments_10000_normal/")
+dirs.sort()
+result_vector = np.zeros((41, 10000), dtype=float)
 result_vec = []
 
 base = 0.0
@@ -17,10 +18,15 @@ ticks = [0.0]
 for i in range(len(dirs)):
     result_vec.append([])
     line_counter = 0
-    with open("./fragments/" + dirs[i]) as fin:
+    with open("./fragments_10000_normal/" + dirs[i]) as fin:
         for line in fin:
             sanitized_line = [token.rstrip("\n") for token in line.split(", ")]
-            result_vector[i, line_counter] = 1.0 - (float(sanitized_line[0])/float(sanitized_line[1]))
+            try:
+                result_vector[i, line_counter] = 1.0 - (float(sanitized_line[0])/float(sanitized_line[1]))
+            except ValueError:
+                print sanitized_line
+                print "From: ", dirs[i]
+                exit(1)
             line_counter += 1
     reservation_percentages.append(base)
     base += .025
@@ -35,8 +41,8 @@ std_devs = np.array(np.std(result_vector, axis=1))
 z_critical = norm.ppf(q = 0.975)
 
 confidences = []
-sampleMeans = np.zeros(40, dtype=float)
-errs = np.zeros(40, dtype=float)
+sampleMeans = np.zeros(41, dtype=float)
+errs = np.zeros(41, dtype=float)
 for i in range(len(result_vector)):
     if i == 3 or i == 4:
         plt.hist(result_vector[i])
@@ -65,4 +71,4 @@ plt.ylabel('Percentage of Solutions considered feasible')
 plt.xlabel('Reservation Percentage')
 plt.xticks(ticks)
 plt.legend(loc='lower right', shadow=True)
-plt.savefig("Results1000_10000.png", dpi=300)
+plt.savefig("./fragments_10000_normal/Results1000_10000_Normal.png", dpi=300)
