@@ -1,10 +1,13 @@
 # exclude extraneous files
+.DS_Store
 .idea/
 UA/
 fragments/
 UnreliableAssignmentFragments/
 fragments_10000_normal/
 fragments_10000_uniform/
+fragments_10000_pareto/
+figs/
 *.pyc
 *.png
 *.txt
