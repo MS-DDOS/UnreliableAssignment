@@ -1,3 +1,20 @@
 # exclude extraneous files
+.DS_Store
 .idea/
-!*.py
+UA/
+fragments/
+UnreliableAssignmentFragments/
+fragments_10000_normal/
+fragments_10000_uniform/
+fragments_10000_pareto/
+figs/
+*.pyc
+*.png
+*.txt
+*.csv
+*.log
+*.err
+Job.py
+Simulation.py
+SimulationGui.py
+mplTest.py

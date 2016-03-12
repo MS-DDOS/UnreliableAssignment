@@ -1,4 +1,6 @@
 class UserError(Exception):
+    """ This class is used to throw customer exceptions """
+
     def __init__(self, value):
         self.value = value
 
@@ -7,7 +9,7 @@ class UserError(Exception):
 
 
 class Bin:
-    'Container used to hold jobs. Can be seen as a server or data center'
+    """ Container used to hold jobs. Can be seen as a server or data center """
 
     def __init__(self, name="default", capacity=1.0):
         self.name = name
@@ -41,7 +43,7 @@ class Bin:
         self.jobCount -= 1
 
     def empty_bin(self):
-        del self.jobs[:]
+        self.jobs = []
         self.jobCount = 0
         self.consumed = 0
         self.reserved = 0

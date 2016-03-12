@@ -1,36 +1,52 @@
-from numba import jit
-from scipy.stats import norm, pareto, uniform
+from scipy.stats import truncnorm, pareto, uniform
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class DistributionGenerator:
-    'Provides access to random number generators useful for populating job weights'
+    """ Provides access to random number generators useful for populating job weights """
 
-    def __init__(self, seedValue=1234):
-        self.seed_val = seedValue
+    def __init__(self):
+        pass
 
-    def generateJobs(self, n, type='normal', plotVals=True):
-        if type == 'normal':
-            r = self.generateNormal(n)
-        elif type == 'pareto':
-            r = self.generatePareto(n)
-        elif type == 'uniform':
-            r = self.generateUniform(n)
+    def generate_jobs(self, n, distribution_type='normal'):
+        if distribution_type == 'normal':
+            r = self.generate_normal(n)
+        elif distribution_type == 'pareto':
+            r = self.generate_pareto(n)
+        elif distribution_type == 'uniform':
+            r = self.generate_uniform(n)
         else:
-            raise ValueError(
-                "Invalid distribution type specifier. You specified " + type + ", valid options are 'normal,' 'pareto,' 'uniform,' and 'constant.'")
+            raise ValueError("Invalid distribution type specifier. You specified {:}, valid options are normal, pareto, uniform, and constant.".format(distribution_type))
         return r
 
-    def generateNormal(self, n):
-        return norm(loc=.5, scale=.1).rvs(size=n, random_state=self.seed_val)
+    def generate_normal(self, n):
+        lower = 0.0
+        upper = 1.0
+        mean = .5
+        std_dev = .16
+        return truncnorm((lower-mean)/std_dev, (upper-mean)/std_dev, loc=mean, scale=std_dev).rvs(size=n)
 
-    def generatePareto(self, n):
-        b = 1.0
-        return pareto.rvs(b, size=n, random_state=self.seed_val)
+    def generate_pareto(self, n):
+        b = 1.5
+        to_return = np.zeros(n, dtype=float)
+        for i in range(n):
+            while True:
+                potential_value = pareto.rvs(b, size=1)
+                if potential_value[0] <= 10.0:
+                    to_return[i] = potential_value/10.0
+                    break
+        return to_return
 
-    def generateUniform(self, n):
+    def generate_uniform(self, n):
         return uniform.rvs(size=n)
 
 
-if __name__ == '__main__':
-    dist = DistributionGenerator()
-    print dist.generateJobs(2000, type="pareto")
+if __name__ == "__main__":
+    x = DistributionGenerator()
+    jobs = x.generate_jobs(1000, distribution_type="pareto")
+    print jobs.max()
+    print jobs.min()
+    plt.hist(jobs)
+    plt.show()
+

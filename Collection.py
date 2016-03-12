@@ -1,10 +1,13 @@
+import sys
 import Bin
 import DistributionGenerator
-import matplotlib.pyplot as plt
+import multiprocessing as mp
 from copy import deepcopy
-from numba import jit
+import numpy as np
+
 
 class Collection:
+    """ Collection is a series of bins used to fit a set of jobs and subsequently test failure of individual bins. """
 
     def __init__(self):
         self.bins = []
@@ -13,6 +16,7 @@ class Collection:
         self.reservation_percentage = 0.0
         self.infeasible_solutions = 0
         self.dist_gen = DistributionGenerator.DistributionGenerator()
+        self.simulation_number = 0
 
     def describe(self):
         for my_bin in self.bins:
@@ -34,11 +38,9 @@ class Collection:
     def migrate_jobs(self, jobs):
         for i in range(len(jobs)):
             job_assigned = False
-            assignedTo = -1
             for j in range(len(self.bins)):
                 if self.bins[j].consume_reservation(jobs[i]):
                     job_assigned = True
-                    assignedTo = j
                     break
             if not job_assigned:
                 raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
@@ -47,22 +49,22 @@ class Collection:
         if len(jobs) != len(reservations):
             raise IndexError("Length of jobs and reservations input lists do not match")
         for i in range(len(jobs)):
-            ### FIT THE JOBS ###
+            # FIT THE JOBS
             job_assigned = False
             reservation_assigned = False
-            assignedTo = -1
+            assigned_to = -1
             for j in range(len(self.bins)): # find an open spot for job
                 if self.bins[j].assign_job(jobs[i]):
                     job_assigned = True
-                    assignedTo = j
+                    assigned_to = j
                     break
             for j in range(len(self.bins)):
                 reservation_assigned = False
-                if j is not assignedTo and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
+                if j is not assigned_to and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
                     reservation_assigned = True
                     self.reservation_map[reservations[i][0]] = (j, self.bins[j].name)
                     break
-            ### IF NO SPACE FOR JOB OR RESERVATION ###
+            # IF NO SPACE FOR JOB OR RESERVATION
             if not job_assigned or not reservation_assigned: # then open a new container
                 self.bins.append(Bin.Bin("Bin_"+str(self.num_containers), 1.0))
                 self.num_containers += 1
@@ -91,6 +93,7 @@ class Collection:
         return self.infeasible_solutions, len(self.bins)
 
     def plot_errythang(self):
+        import matplotlib.pyplot as plt
         res = [my_bin.reserved_ratio() for my_bin in self.bins]
         con = [my_bin.consumed_ratio() for my_bin in self.bins]
         fig, ax = plt.subplots(1, 1)
@@ -103,21 +106,37 @@ class Collection:
         plt.xticks([x for x in range(len(self.bins)) if x % 2 == 0])
         plt.show()
 
-    def run(self, num_jobs, reservation_percentage):
+    def run(self, _num_jobs, _reservation_percentage):
         # Jobs are represented as a triple (jobId, jobSize, isReservation)
-        test_jobs = zip(range(num_jobs), self.dist_gen.generateJobs(num_jobs, 'uniform', False), [False for x in range(num_jobs)])
+        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='pareto'), [False for x in range(_num_jobs)])
         reservations = []
         for job in test_jobs:
-            reservations.append((job[0], job[1]*reservation_percentage, True))
+            reservations.append((job[0], job[1]*_reservation_percentage, True))
         self.firstFit(test_jobs, reservations)
-        #self.describe()
-        #print self.reservation_map
+
+
+def run_sim(_num_jobs, _reservation_percentage, _simulation_number):
+    c = Collection()
+    print "Running simulation {:} --> {:} jobs @ {:.2%} reservation...".format(_simulation_number, _num_jobs, _reservation_percentage)
+    c.run(num_jobs, reservation_percentage)  # run(num_jobs, reservation_percentage)
+    return c.exhaustive_fail()
 
 if __name__ == "__main__":
-    c = Collection()
-    c.run()
-    #c.plot_errythang()
-    #c.fail(0)
-    #c.plot_errythang()
-    #c.describe()
-    print c.exhaustive_fail()
+    # program in invoked as:
+    # python Collection.py <num_jobs> <reservation_percentage> <num_trials> <output_file>
+    if len(sys.argv) != 5:
+        raise ValueError("Invalid number of args. Usage is: python Collection.py <num_jobs> <reservation_percentage> <num_trials> <output_file>")
+
+    output_array = np.zeros(int(sys.argv[3]), dtype=(int, 2))
+    num_jobs = int(sys.argv[1])
+    reservation_percentage = float(sys.argv[2])
+    num_trials = int(sys.argv[3])
+
+    pool = mp.Pool(processes=2)
+    procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
+    for i in range(len(procs)):
+        output_array[i, 0], output_array[i, 1] = procs[i].get()
+
+    with open(sys.argv[4], 'w') as fout:
+        for i in range(len(output_array)):
+            fout.write("{:}, {:}\n".format(str(output_array[i, 0]), str(output_array[i, 1])))
