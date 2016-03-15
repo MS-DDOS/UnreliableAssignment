@@ -1,3 +1,5 @@
+import numpy as np
+
 class UserError(Exception):
     """ This class is used to throw customer exceptions """
 
@@ -17,11 +19,14 @@ class Bin:
         self.consumed = 0.0
         self.reserved = 0.0
         self.jobCount = 0
-        self.jobs = []
+        self.jobCapacity = 40
+        self.jobs = np.nan * np.empty(self.jobCapacity, dtype=float)
 
     def assign_job(self, job):
         if self.consumed + self.reserved + job[1] <= self.capacity:
-            self.jobs.append(job)
+            if self.jobCount == self.jobCapacity:
+                self.jobs = np.concatenate((self.jobs, np.nan * np.empty(self.jobCapacity, dtype=float)), axis=0)
+            self.jobs[self.jobCount] = job[1]
             self.jobCount += 1
             if not job[2]:  # if job is not a reservation
                 self.consumed += job[1]
@@ -43,17 +48,19 @@ class Bin:
         self.jobCount -= 1
 
     def empty_bin(self):
-        self.jobs = []
+        self.jobs = np.nan * np.empty(self.jobCapacity, dtype=float)
         self.jobCount = 0
         self.consumed = 0
         self.reserved = 0
 
     def consume_reservation(self, job):
-        if job[1] <= self.reserved:
-            self.reserved -= job[1]
-            self.consumed += job[1]
+        if job <= self.reserved:
+            self.reserved -= job
+            self.consumed += job
+            if self.jobCount == self.jobCapacity:
+                self.jobs = np.concatenate((self.jobs, np.nan * np.empty(self.jobCapacity, dtype=float)), axis=0)
             self.jobCount += 1
-            self.jobs.append(job)
+            self.jobs[self.jobCount] = job
             return True
         else:
             return False
