@@ -13,20 +13,23 @@ class UserError(Exception):
 class Bin:
     """ Container used to hold jobs. Can be seen as a server or data center """
 
-    def __init__(self, name="default", capacity=1.0):
+    def __init__(self, name="default", capacity=1000):
         self.name = name
         self.capacity = capacity
-        self.consumed = 0.0
-        self.reserved = 0.0
+        self.consumed = 0
+        self.reserved = 0
         self.jobCount = 0
         self.jobCapacity = 40
-        self.jobs = np.nan * np.empty(self.jobCapacity, dtype=float)
+        self.job_ids = np.full(self.jobCapacity, -1, dtype=int)
+        self.jobs = np.full(self.jobCapacity, -1, dtype=int)
 
     def assign_job(self, job):
         if self.consumed + self.reserved + job[1] <= self.capacity:
             if self.jobCount == self.jobCapacity:
-                self.jobs = np.concatenate((self.jobs, np.nan * np.empty(self.jobCapacity, dtype=float)), axis=0)
+                self.jobs = np.concatenate((self.jobs, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
+                self.job_ids = np.concatenate((self.job_ids, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
             self.jobs[self.jobCount] = job[1]
+            self.job_ids[self.jobCount] = job[0]
             self.jobCount += 1
             if not job[2]:  # if job is not a reservation
                 self.consumed += job[1]
@@ -48,7 +51,7 @@ class Bin:
         self.jobCount -= 1
 
     def empty_bin(self):
-        self.jobs = np.nan * np.empty(self.jobCapacity, dtype=float)
+        self.jobs = np.full(self.jobCapacity, -1, dtype=int)
         self.jobCount = 0
         self.consumed = 0
         self.reserved = 0
@@ -58,7 +61,8 @@ class Bin:
             self.reserved -= job
             self.consumed += job
             if self.jobCount == self.jobCapacity:
-                self.jobs = np.concatenate((self.jobs, np.nan * np.empty(self.jobCapacity, dtype=float)), axis=0)
+                self.jobs = np.concatenate((self.jobs, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
+                self.job_ids = np.concatenate((self.job_ids, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
             self.jobCount += 1
             self.jobs[self.jobCount] = job
             return True
@@ -82,7 +86,7 @@ class Bin:
         return self.reserved
 
     def is_empty(self):
-        if self.consumed == 0.0 and self.reserved == 0.0:
+        if self.consumed == 0 and self.reserved == 0:
             return True
         else:
             return False

@@ -18,7 +18,7 @@ class DistributionGenerator:
             r = self.generate_uniform(n)
         else:
             raise ValueError("Invalid distribution type specifier. You specified {:}, valid options are normal, pareto, uniform, and constant.".format(distribution_type))
-        return r
+        return np.array(1000*r, dtype=int)
 
     def generate_normal(self, n):
         lower = 0.0

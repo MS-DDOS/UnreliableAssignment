@@ -25,10 +25,10 @@ class Collection:
             my_bin.describe()
 
     def fail(self, bin_id):
-        #jobs_to_remove = deepcopy(self.bins[bin_id].jobs)
-        jobs_to_remove = deepcopy(self.bins[bin_id].jobs[~np.isnan(self.bins[bin_id].jobs)])
+        jobs_to_remove = deepcopy(self.bins[bin_id].jobs[self.bins[bin_id].jobs != -1])
+        job_ids_to_remove = deepcopy(self.bins[bin_id].job_ids[self.bins[bin_id].jobs != -1])
         self.bins[bin_id].empty_bin()
-        self.migrate_jobs(jobs_to_remove)
+        self.migrate_jobs(job_ids_to_remove, jobs_to_remove)
         '''
         try:
             self.migrate_jobs(jobs_to_remove)
@@ -37,7 +37,9 @@ class Collection:
             return
         '''
 
-    def migrate_jobs(self, jobs):
+    def migrate_jobs(self, job_ids, jobs):
+        '''
+        # GO ANYWHERE #
         for i in range(len(jobs)):
             job_assigned = False
             for j in range(len(self.bins[self.bins != np.array(None)])):
@@ -46,6 +48,17 @@ class Collection:
                     break
             if not job_assigned:
                 raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
+        '''
+        # ONLY TO ASSIGNED LOCATION #
+        for i in range(len(jobs)):
+            job_assigned = False
+            bin_num = self.reservation_map[job_ids[i]]
+            if self.bins[bin_num[0]].consume_reservation(jobs[i]):
+                job_assigned = True
+            if not job_assigned:
+                raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
+
+
 
     def firstFit(self, jobs, reservations):
         if len(jobs) != len(reservations):
@@ -70,7 +83,7 @@ class Collection:
             if not job_assigned or not reservation_assigned: # then open a new container
                 if self.num_containers == self.bin_capacity:
                     self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
-                self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers), 1.0)
+                self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                 self.num_containers += 1
                 if not job_assigned:
                     if not self.bins[self.num_containers-1].assign_job(jobs[i]):
@@ -78,15 +91,15 @@ class Collection:
                     if not reservation_assigned:
                         if self.num_containers == self.bin_capacity:
                             self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
-                        self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers), 1.0)
+                        self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                         self.num_containers += 1
                         if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                             raise ValueError("Reservation size exceeds every container's capacity")
-                        self.reservation_map[reservations[i][0]] = (len(self.bins[self.bins != np.array(None)]), self.bins[self.num_containers-1].name)
+                        self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
                 elif not reservation_assigned:
                     if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                         raise ValueError("Reservation size exceeds every container's capacity")
-                    self.reservation_map[reservations[i][0]] = (len(self.bins[self.bins != np.array(None)]), self.bins[self.num_containers-1].name)
+                    self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
 
     def exhaustive_fail(self):
         base = deepcopy(self.bins)
@@ -100,16 +113,16 @@ class Collection:
 
     def plot_errythang(self):
         import matplotlib.pyplot as plt
-        res = [my_bin.reserved_ratio() for my_bin in self.bins]
-        con = [my_bin.consumed_ratio() for my_bin in self.bins]
+        res = [my_bin.reserved_ratio() for my_bin in self.bins[self.bins != np.array(None)]]
+        con = [my_bin.consumed_ratio() for my_bin in self.bins[self.bins != np.array(None)]]
         fig, ax = plt.subplots(1, 1)
-        ax.bar(range(len(self.bins)), res, width=1.0, color='r')
-        ax.bar(range(len(self.bins)), con, width=1.0, color='b', bottom=res)
-        ax.set_xlim([0, len(self.bins)])
+        ax.bar(range(len(self.bins[self.bins != np.array(None)])), res, width=1.0, color='r')
+        ax.bar(range(len(self.bins[self.bins != np.array(None)])), con, width=1.0, color='b', bottom=res)
+        ax.set_xlim([0, len(self.bins[self.bins != np.array(None)])])
         plt.title('Job and Reservation fit')
         plt.ylabel('Bin capacity')
         plt.xlabel('Bin')
-        plt.xticks([x for x in range(len(self.bins)) if x % 2 == 0])
+        plt.xticks([x for x in range(len(self.bins[self.bins != np.array(None)])) if x % 2 == 0])
         plt.show()
 
     def run(self, _num_jobs, _reservation_percentage):
@@ -138,7 +151,7 @@ if __name__ == "__main__":
     reservation_percentage = float(sys.argv[2])
     num_trials = int(sys.argv[3])
 
-    pool = mp.Pool(processes=2)
+    pool = mp.Pool(processes=8)
     procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
     for i in range(len(procs)):
         output_array[i, 0], output_array[i, 1] = procs[i].get()
