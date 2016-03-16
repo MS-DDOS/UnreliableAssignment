@@ -10,7 +10,8 @@ class Collection:
     """ Collection is a series of bins used to fit a set of jobs and subsequently test failure of individual bins. """
 
     def __init__(self):
-        self.bins = []
+        self.bin_capacity = 800
+        self.bins = np.empty(self.bin_capacity, dtype=object)
         self.reservation_map = {}
         self.num_containers = 0
         self.reservation_percentage = 0.0
@@ -24,7 +25,8 @@ class Collection:
             my_bin.describe()
 
     def fail(self, bin_id):
-        jobs_to_remove = deepcopy(self.bins[bin_id].jobs)
+        #jobs_to_remove = deepcopy(self.bins[bin_id].jobs)
+        jobs_to_remove = deepcopy(self.bins[bin_id].jobs[~np.isnan(self.bins[bin_id].jobs)])
         self.bins[bin_id].empty_bin()
         self.migrate_jobs(jobs_to_remove)
         '''
@@ -38,7 +40,7 @@ class Collection:
     def migrate_jobs(self, jobs):
         for i in range(len(jobs)):
             job_assigned = False
-            for j in range(len(self.bins)):
+            for j in range(len(self.bins[self.bins != np.array(None)])):
                 if self.bins[j].consume_reservation(jobs[i]):
                     job_assigned = True
                     break
@@ -53,12 +55,12 @@ class Collection:
             job_assigned = False
             reservation_assigned = False
             assigned_to = -1
-            for j in range(len(self.bins)): # find an open spot for job
+            for j in range(len(self.bins[self.bins != np.array(None)])): # find an open spot for job
                 if self.bins[j].assign_job(jobs[i]):
                     job_assigned = True
                     assigned_to = j
                     break
-            for j in range(len(self.bins)):
+            for j in range(len(self.bins[self.bins != np.array(None)])):
                 reservation_assigned = False
                 if j is not assigned_to and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
                     reservation_assigned = True
@@ -66,31 +68,35 @@ class Collection:
                     break
             # IF NO SPACE FOR JOB OR RESERVATION
             if not job_assigned or not reservation_assigned: # then open a new container
-                self.bins.append(Bin.Bin("Bin_"+str(self.num_containers), 1.0))
+                if self.num_containers == self.bin_capacity:
+                    self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
+                self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers), 1.0)
                 self.num_containers += 1
                 if not job_assigned:
-                    if not self.bins[-1].assign_job(jobs[i]):
+                    if not self.bins[self.num_containers-1].assign_job(jobs[i]):
                         raise ValueError("Job size exceeds every container's capacity")
                     if not reservation_assigned:
-                        self.bins.append(Bin.Bin("Bin_"+str(self.num_containers), 1.0))
+                        if self.num_containers == self.bin_capacity:
+                            self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
+                        self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers), 1.0)
                         self.num_containers += 1
-                        if not self.bins[-1].assign_reservation(reservations[i]):
+                        if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                             raise ValueError("Reservation size exceeds every container's capacity")
-                        self.reservation_map[reservations[i][0]] = (len(self.bins)-1, self.bins[-1].name)
+                        self.reservation_map[reservations[i][0]] = (len(self.bins[self.bins != np.array(None)]), self.bins[self.num_containers-1].name)
                 elif not reservation_assigned:
-                    if not self.bins[-1].assign_reservation(reservations[i]):
+                    if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                         raise ValueError("Reservation size exceeds every container's capacity")
-                    self.reservation_map[reservations[i][0]] = (len(self.bins)-1, self.bins[-1].name)
+                    self.reservation_map[reservations[i][0]] = (len(self.bins[self.bins != np.array(None)]), self.bins[self.num_containers-1].name)
 
     def exhaustive_fail(self):
         base = deepcopy(self.bins)
-        for i in range(len(self.bins)):
+        for i in range(len(self.bins[self.bins != np.array(None)])):
             try:
                 self.fail(i)
             except ValueError:
                 self.infeasible_solutions += 1
             self.bins = deepcopy(base)
-        return self.infeasible_solutions, len(self.bins)
+        return self.infeasible_solutions, len(self.bins[self.bins != np.array(None)])
 
     def plot_errythang(self):
         import matplotlib.pyplot as plt
