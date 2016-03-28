@@ -70,11 +70,10 @@ class Bin:
             return False
 
     def describe(self):
-        for job in self.jobs:
-            if job[2] is False:
-                print "\tJob (" + str(job[0]) + "): " + str(job[1])
-            else:
-                print "\tRes (" + str(job[0]) + "): " + str(job[1])
+        for job in range(len(self.jobs[self.jobs != -1])):
+            print "\tJob (" + str(self.job_ids[job]) + "): " + str(self.jobs[job])
+        #for res in self.re
+        #   print "\tRes (" + str(job[0]) + "): " + str(job[1])
 
     def ratio(self):
         return (self.consumed + self.reserved)/self.capacity
@@ -90,3 +89,8 @@ class Bin:
             return True
         else:
             return False
+
+    def only_reserved(self):
+        if self.consumed == 0:
+            return True
+        return False

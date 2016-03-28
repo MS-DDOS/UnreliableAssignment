@@ -4,14 +4,15 @@ from scipy.stats import norm
 from math import sqrt
 import matplotlib.pyplot as plt
 
-path = "./fragments_10000_pareto/"
+path = "./single_failure_assigned/single_uniform_assigned/"
+length = 41
 
 if not os.path.isdir(path):
-    raise ValueError("./fragments/ directory does not exist in the working directory")
+    raise ValueError("./single_failure_goanywhere/fragments/ directory does not exist in the working directory")
 
 files = [f for f in os.listdir(path) if f.endswith(".csv")]
 files.sort()
-result_vector = np.zeros((40, 10000), dtype=float)
+result_vector = np.zeros((length, 10000), dtype=float)
 
 base = 0.0
 reservation_percentages = []
@@ -33,7 +34,7 @@ for i in range(len(files)):
     if i % 2 == 1:
         ticks.append(base)
 
-hundred_percent = np.zeros(40, dtype=float)
+hundred_percent = np.zeros(length, dtype=float)
 
 for i in range(len(result_vector)):
     count = 0
@@ -42,7 +43,20 @@ for i in range(len(result_vector)):
             count += 1
     hundred_percent[i] = float(count)/float(len(result_vector[i]))
 
-plt.bar(range(len(hundred_percent)), hundred_percent)
+print hundred_percent[len(result_vector)-1]
+
+labels = []
+for i in range(len(reservation_percentages)):
+    if i % 2 == 0:
+        labels.append("{:.2f}".format(reservation_percentages[i]))
+    else:
+        labels.append("")
+plt.bar(range(len(hundred_percent)), hundred_percent, width=1.0, align="center")
+plt.xticks(range(len(hundred_percent)), labels, rotation="vertical")
+plt.title('Rate of 100% solutions vs Reservation Percentage')
+plt.ylabel('Percentage of trials that resulted in 100% solution feasibility')
+plt.xlabel('Reservation Percentage')
+plt.xlim([-1, length])
 plt.show()
 
 '''

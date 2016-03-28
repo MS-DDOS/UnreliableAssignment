@@ -4,14 +4,17 @@ from scipy.stats import norm
 from math import sqrt
 import matplotlib.pyplot as plt
 
-path = "./fragments_10000_pareto/"
+path = "./single_failure_assigned/single_uniform_assigned/"
+num = 41
+outputfile = "single_uniform_assigned.png"
 
 if not os.path.isdir(path):
     raise ValueError(path + " directory does not exist in the working directory")
 
 files = [f for f in os.listdir(path) if f.endswith(".csv")]
 files.sort()
-result_vector = np.zeros((40, 10000), dtype=float)
+print files
+result_vector = np.zeros((num, 10000), dtype=float)
 result_vec = []
 
 base = 0.0
@@ -43,8 +46,8 @@ std_devs = np.array(np.std(result_vector, axis=1))
 z_critical = norm.ppf(q=0.975)
 
 confidences = []
-sampleMeans = np.zeros(40, dtype=float)
-errs = np.zeros(40, dtype=float)
+sampleMeans = np.zeros(num, dtype=float)
+errs = np.zeros(num, dtype=float)
 for i in range(len(result_vector)):
     if i == 3 or i == 4:
         plt.hist(result_vector[i])
@@ -71,4 +74,4 @@ plt.ylabel('Percentage of Solutions considered feasible')
 plt.xlabel('Reservation Percentage')
 plt.xticks(ticks)
 plt.legend(loc='lower right', shadow=True)
-plt.savefig(path + "Results1000_10000_Pareto.png", dpi=300)
+plt.savefig(path + outputfile, dpi=300)

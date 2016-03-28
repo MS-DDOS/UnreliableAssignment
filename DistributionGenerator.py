@@ -1,6 +1,5 @@
 from scipy.stats import truncnorm, pareto, uniform
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class DistributionGenerator:
@@ -43,6 +42,7 @@ class DistributionGenerator:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     x = DistributionGenerator()
     jobs = x.generate_jobs(1000, distribution_type="pareto")
     print jobs.max()

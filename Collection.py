@@ -58,7 +58,13 @@ class Collection:
             if not job_assigned:
                 raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
 
+    def firstFitTopo(self, jobs, reservations):
+        if len(jobs) != len(reservations):
+            raise IndexError("Length of jobs and reservations input lists do no match")
 
+        import networkx as nx
+        skeleton = nx.barabasi_albert_graph(780)
+        G = nx.empty_graph()
 
     def firstFit(self, jobs, reservations):
         if len(jobs) != len(reservations):
@@ -75,7 +81,7 @@ class Collection:
                     break
             for j in range(len(self.bins[self.bins != np.array(None)])):
                 reservation_assigned = False
-                if j is not assigned_to and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
+                if (j != assigned_to) and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
                     reservation_assigned = True
                     self.reservation_map[reservations[i][0]] = (j, self.bins[j].name)
                     break
@@ -108,26 +114,36 @@ class Collection:
                 self.fail(i)
             except ValueError:
                 self.infeasible_solutions += 1
+                print "BIN ",i," IS RESPONSIBLE"
             self.bins = deepcopy(base)
+        if self.infeasible_solutions != 0:
+            print self.reservation_map
+            for i in range(len(self.bins[self.bins != np.array(None)])):
+                print "Bin ",i
+                print self.bins[i].describe()
+            #self.plot_errythang()
         return self.infeasible_solutions, len(self.bins[self.bins != np.array(None)])
 
     def plot_errythang(self):
         import matplotlib.pyplot as plt
         res = [my_bin.reserved_ratio() for my_bin in self.bins[self.bins != np.array(None)]]
         con = [my_bin.consumed_ratio() for my_bin in self.bins[self.bins != np.array(None)]]
-        fig, ax = plt.subplots(1, 1)
-        ax.bar(range(len(self.bins[self.bins != np.array(None)])), res, width=1.0, color='r')
-        ax.bar(range(len(self.bins[self.bins != np.array(None)])), con, width=1.0, color='b', bottom=res)
+        fig, ax = plt.subplots(1,1)
+        rect = ax.bar(range(len(self.bins[self.bins != np.array(None)])), res, width=1.0, color='r')
+        rect2 = ax.bar(range(len(self.bins[self.bins != np.array(None)])), con, width=1.0, color='b', bottom=res)
         ax.set_xlim([0, len(self.bins[self.bins != np.array(None)])])
         plt.title('Job and Reservation fit')
         plt.ylabel('Bin capacity')
         plt.xlabel('Bin')
-        plt.xticks([x for x in range(len(self.bins[self.bins != np.array(None)])) if x % 2 == 0])
-        plt.show()
+        plt.xticks([x for x in range(len(self.bins[self.bins != np.array(None)])) if x % 2 == 0], rotation="vertical")
+        plt.legend((rect[0],rect2[0]),("Reserved", "Consumed"))
+        plt.savefig("failed_100.png", dpi=150)
+        print "OUTPUT PNG"
+        #plt.show()
 
     def run(self, _num_jobs, _reservation_percentage):
         # Jobs are represented as a triple (jobId, jobSize, isReservation)
-        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='pareto'), [False for x in range(_num_jobs)])
+        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='uniform'), [False for x in range(_num_jobs)])
         reservations = []
         for job in test_jobs:
             reservations.append((job[0], job[1]*_reservation_percentage, True))
@@ -151,10 +167,15 @@ if __name__ == "__main__":
     reservation_percentage = float(sys.argv[2])
     num_trials = int(sys.argv[3])
 
-    pool = mp.Pool(processes=8)
+    '''
+    pool = mp.Pool(processes=2)
     procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
     for i in range(len(procs)):
         output_array[i, 0], output_array[i, 1] = procs[i].get()
+
+    '''
+    for i in range(num_trials):
+        output_array[i, 0], output_array[i, 1] = run_sim(num_jobs, reservation_percentage, i+1)
 
     with open(sys.argv[4], 'w') as fout:
         for i in range(len(output_array)):

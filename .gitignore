@@ -1,6 +1,8 @@
 # exclude extraneous files
 .DS_Store
 .idea/
+single_failure_assigned/
+single_failure_goanywhere/
 UA/
 fragments/
 UnreliableAssignmentFragments/
