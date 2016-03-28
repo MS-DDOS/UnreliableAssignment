@@ -75,13 +75,13 @@ class Collection:
             reservation_assigned = False
             assigned_to = -1
             for j in range(len(self.bins[self.bins != np.array(None)])): # find an open spot for job
-                if self.bins[j].assign_job(jobs[i]):
+                if self.bins[j].assign_job(jobs[i][0], jobs[i][1]):
                     job_assigned = True
                     assigned_to = j
                     break
             for j in range(len(self.bins[self.bins != np.array(None)])):
                 reservation_assigned = False
-                if (j != assigned_to) and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
+                if (j != assigned_to) and self.bins[j].assign_reservation(reservations[i][1]): #find a place for the reservation
                     reservation_assigned = True
                     self.reservation_map[reservations[i][0]] = (j, self.bins[j].name)
                     break
@@ -92,18 +92,18 @@ class Collection:
                 self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                 self.num_containers += 1
                 if not job_assigned:
-                    if not self.bins[self.num_containers-1].assign_job(jobs[i]):
+                    if not self.bins[self.num_containers-1].assign_job(jobs[i][0], jobs[i][1]):
                         raise ValueError("Job size exceeds every container's capacity")
                     if not reservation_assigned:
                         if self.num_containers == self.bin_capacity:
                             self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
                         self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                         self.num_containers += 1
-                        if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
+                        if not self.bins[self.num_containers-1].assign_reservation(reservations[i][1]):
                             raise ValueError("Reservation size exceeds every container's capacity")
                         self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
                 elif not reservation_assigned:
-                    if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
+                    if not self.bins[self.num_containers-1].assign_reservation(reservations[i][1]):
                         raise ValueError("Reservation size exceeds every container's capacity")
                     self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
 

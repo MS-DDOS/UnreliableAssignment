@@ -4,10 +4,9 @@ cdef class Bin:
     """ Container used to hold jobs. Can be seen as a server or data center """
 
     cdef int capacity, consumed, reserved, jobCount, jobCapacity
-    cdef string name
-    cdef np.ndarray[np.int64_t, ndim=1] job_ids, jobs
+    cdef char* name
 
-    cpdef __init__(self, string name="default", int capacity=1000):
+    def __init__(self, char* name="default", int capacity=1000):
         self.name = name
         self.capacity = capacity
         self.consumed = 0
@@ -17,7 +16,7 @@ cdef class Bin:
         self.job_ids = np.full(self.jobCapacity, -1, dtype=int)
         self.jobs = np.full(self.jobCapacity, -1, dtype=int)
 
-    cdef bint assign_job(self, int jobid, int job):
+    cpdef bint assign_job(self, int jobid, int job):
         if self.consumed + self.reserved + job <= self.capacity:
             if self.jobCount == self.jobCapacity:
                 self.jobs = np.concatenate((self.jobs, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
@@ -25,25 +24,25 @@ cdef class Bin:
             self.jobs[self.jobCount] = job
             self.job_ids[self.jobCount] = jobid
             self.jobCount += 1
-            self.consumed += job[1]
+            self.consumed += job
             return True
         else:
             return False
 
-    cdef bint assign_reservation(self, int res):
+    cpdef bint assign_reservation(self, int res):
         if self.consumed + self.reserved + res <= self.capacity:
             self.reserved += res
             return True
         return False
 
 
-    cdef empty_bin(self):
+    cpdef empty_bin(self):
         self.jobs = np.full(self.jobCapacity, -1, dtype=int)
         self.jobCount = 0
         self.consumed = 0
         self.reserved = 0
 
-    cdef bint consume_reservation(self, int job):
+    cpdef bint consume_reservation(self, int job):
         if job <= self.reserved:
             self.reserved -= job
             self.consumed += job
@@ -56,7 +55,7 @@ cdef class Bin:
         else:
             return False
 
-    cdef describe(self):
+    cpdef describe(self):
         cdef size_t job
         for job in range(len(self.jobs[self.jobs != -1])):
             print "\tJob (" + str(self.job_ids[job]) + "): " + str(self.jobs[job])
