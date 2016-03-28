@@ -26,7 +26,7 @@ percentage = base
 os.mkdir("UnreliableAssignmentFragments")
 os.chdir("./UnreliableAssignmentFragments")
 
-for i in range(40):
+for i in range(41):
     os.mkdir("Fragment_" + str(i))
     os.chdir("./Fragment_" + str(i))
     with open("trials_{:}_{:}_{:}.sh".format(str(trials), int(percentage*100), str(num_jobs)), 'w') as fout:

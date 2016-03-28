@@ -1,6 +1,5 @@
 from scipy.stats import truncnorm, pareto, uniform
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class DistributionGenerator:
@@ -18,7 +17,7 @@ class DistributionGenerator:
             r = self.generate_uniform(n)
         else:
             raise ValueError("Invalid distribution type specifier. You specified {:}, valid options are normal, pareto, uniform, and constant.".format(distribution_type))
-        return r
+        return np.array(1000*r, dtype=int)
 
     def generate_normal(self, n):
         lower = 0.0
@@ -43,6 +42,7 @@ class DistributionGenerator:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     x = DistributionGenerator()
     jobs = x.generate_jobs(1000, distribution_type="pareto")
     print jobs.max()
