@@ -5,6 +5,8 @@ cdef class Bin:
 
     cdef int capacity, consumed, reserved, jobCount, jobCapacity
     cdef char* name
+    cdef np.ndarray[np.int64_t, ndim=1] job_ids
+    cdef np.ndarray[np.int64_t, ndim=1] jobs
 
     def __init__(self, char* name="default", int capacity=1000):
         self.name = name
