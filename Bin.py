@@ -1,19 +1,13 @@
-import numpy as np
+cimport numpy as np
 
-class UserError(Exception):
-    """ This class is used to throw customer exceptions """
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-
-class Bin:
+cdef class Bin:
     """ Container used to hold jobs. Can be seen as a server or data center """
 
-    def __init__(self, name="default", capacity=1000):
+    cdef int capacity, consumed, reserved, jobCount, jobCapacity
+    cdef string name
+    cdef np.ndarray[np.int64_t, ndim=1] job_ids, jobs
+
+    cpdef __init__(self, string name="default", int capacity=1000):
         self.name = name
         self.capacity = capacity
         self.consumed = 0
@@ -23,40 +17,33 @@ class Bin:
         self.job_ids = np.full(self.jobCapacity, -1, dtype=int)
         self.jobs = np.full(self.jobCapacity, -1, dtype=int)
 
-    def assign_job(self, job):
-        if self.consumed + self.reserved + job[1] <= self.capacity:
+    cdef bint assign_job(self, int jobid, int job):
+        if self.consumed + self.reserved + job <= self.capacity:
             if self.jobCount == self.jobCapacity:
                 self.jobs = np.concatenate((self.jobs, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
                 self.job_ids = np.concatenate((self.job_ids, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
-            self.jobs[self.jobCount] = job[1]
-            self.job_ids[self.jobCount] = job[0]
+            self.jobs[self.jobCount] = job
+            self.job_ids[self.jobCount] = jobid
             self.jobCount += 1
-            if not job[2]:  # if job is not a reservation
-                self.consumed += job[1]
-            else:
-                self.reserved += job[1]
+            self.consumed += job[1]
             return True
         else:
             return False
 
-    def assign_reservation(self, job):
-        if self.consumed + self.reserved + job[1] <= self.capacity:
-            self.reserved += job[1]
+    cdef bint assign_reservation(self, int res):
+        if self.consumed + self.reserved + res <= self.capacity:
+            self.reserved += res
             return True
         return False
 
-    def remove_job(self, job):
-        self.jobs.remove(job)
-        self.consumed -= job[2]
-        self.jobCount -= 1
 
-    def empty_bin(self):
+    cdef empty_bin(self):
         self.jobs = np.full(self.jobCapacity, -1, dtype=int)
         self.jobCount = 0
         self.consumed = 0
         self.reserved = 0
 
-    def consume_reservation(self, job):
+    cdef bint consume_reservation(self, int job):
         if job <= self.reserved:
             self.reserved -= job
             self.consumed += job
@@ -69,28 +56,29 @@ class Bin:
         else:
             return False
 
-    def describe(self):
+    cdef describe(self):
+        cdef size_t job
         for job in range(len(self.jobs[self.jobs != -1])):
             print "\tJob (" + str(self.job_ids[job]) + "): " + str(self.jobs[job])
         #for res in self.re
         #   print "\tRes (" + str(job[0]) + "): " + str(job[1])
 
-    def ratio(self):
+    cpdef ratio(self):
         return (self.consumed + self.reserved)/self.capacity
 
-    def consumed_ratio(self):
+    cpdef consumed_ratio(self):
         return self.consumed
 
-    def reserved_ratio(self):
+    cpdef reserved_ratio(self):
         return self.reserved
 
-    def is_empty(self):
+    cpdef bint is_empty(self):
         if self.consumed == 0 and self.reserved == 0:
             return True
         else:
             return False
 
-    def only_reserved(self):
+    cpdef bint only_reserved(self):
         if self.consumed == 0:
             return True
         return False
