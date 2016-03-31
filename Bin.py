@@ -1,14 +1,14 @@
+import numpy as np
 cimport numpy as np
 
 cdef class Bin:
     """ Container used to hold jobs. Can be seen as a server or data center """
 
     cdef int capacity, consumed, reserved, jobCount, jobCapacity
-    cdef char* name
-    cdef np.ndarray[np.int64_t, ndim=1] job_ids
-    cdef np.ndarray[np.int64_t, ndim=1] jobs
+    cdef np.int_t[:] job_ids
+    cdef np.int_t[:] jobs
 
-    def __init__(self, char* name="default", int capacity=1000):
+    def __init__(self, name="default", int capacity=1000):
         self.name = name
         self.capacity = capacity
         self.consumed = 0
@@ -18,7 +18,10 @@ cdef class Bin:
         self.job_ids = np.full(self.jobCapacity, -1, dtype=int)
         self.jobs = np.full(self.jobCapacity, -1, dtype=int)
 
-    cpdef bint assign_job(self, int jobid, int job):
+    def assign_job(self, int jobid, int job):
+        return self._assign_job(jobid, job)
+
+    cdef bint _assign_job(self, int jobid, int job):
         if self.consumed + self.reserved + job <= self.capacity:
             if self.jobCount == self.jobCapacity:
                 self.jobs = np.concatenate((self.jobs, np.full(self.jobCapacity, -1, dtype=int)), axis=0)
@@ -31,7 +34,10 @@ cdef class Bin:
         else:
             return False
 
-    cpdef bint assign_reservation(self, int res):
+    def assign_reservation(self, int res):
+        return self._assign_reservation(res)
+
+    cdef bint _assign_reservation(self, int res):
         if self.consumed + self.reserved + res <= self.capacity:
             self.reserved += res
             return True
@@ -44,7 +50,10 @@ cdef class Bin:
         self.consumed = 0
         self.reserved = 0
 
-    cpdef bint consume_reservation(self, int job):
+    def consume_reservation(self, int job):
+        return self._consume_reservation(job)
+
+    cdef bint _consume_reservation(self, int job):
         if job <= self.reserved:
             self.reserved -= job
             self.consumed += job
@@ -58,8 +67,10 @@ cdef class Bin:
             return False
 
     cpdef describe(self):
+        cdef np.ndarray[np.int32_t, ndim=1] _jobs
         cdef size_t job
-        for job in range(len(self.jobs[self.jobs != -1])):
+        _jobs = np.asarray(self.jobs)
+        for job in range(len(_jobs[np.where(_jobs != -1)])):
             print "\tJob (" + str(self.job_ids[job]) + "): " + str(self.jobs[job])
         #for res in self.re
         #   print "\tRes (" + str(job[0]) + "): " + str(job[1])

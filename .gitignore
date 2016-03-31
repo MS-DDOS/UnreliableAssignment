@@ -1,6 +1,7 @@
 # exclude extraneous files
 .DS_Store
 .idea/
+cython_debug/
 single_failure_assigned/
 single_failure_goanywhere/
 UA/

@@ -4,9 +4,9 @@ from scipy.stats import norm
 from math import sqrt
 import matplotlib.pyplot as plt
 
-path = "./single_failure_assigned/single_uniform_assigned/"
+path = "./single_failure_assigned/TEST_UNIFORM/"
 num = 41
-outputfile = "single_uniform_assigned.png"
+outputfile = "TEST_UNIFORM.png"
 
 if not os.path.isdir(path):
     raise ValueError(path + " directory does not exist in the working directory")

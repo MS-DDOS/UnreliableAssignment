@@ -3,8 +3,9 @@ import Bin
 import DistributionGenerator
 import multiprocessing as mp
 from copy import deepcopy
+import cPickle
 import numpy as np
-
+import time
 
 class Collection:
     """ Collection is a series of bins used to fit a set of jobs and subsequently test failure of individual bins. """
@@ -20,15 +21,18 @@ class Collection:
         self.simulation_number = 0
 
     def describe(self):
-        for my_bin in self.bins:
-            print my_bin.name, "({:.2%}) --> {:.2%}".format(my_bin.ratio(), my_bin.reserved_ratio())
-            my_bin.describe()
+    	print self.bins[:self.num_containers]
+        for p in range(self.num_containers):
+            print self.bins[p].name, "({:.2%}) --> {:.2%}".format(self.bins[p].ratio(), self.bins[p].reserved_ratio())
+            self.bins[p].describe()
 
     def fail(self, bin_id):
-        jobs_to_remove = deepcopy(self.bins[bin_id].jobs[self.bins[bin_id].jobs != -1])
-        job_ids_to_remove = deepcopy(self.bins[bin_id].job_ids[self.bins[bin_id].jobs != -1])
-        self.bins[bin_id].empty_bin()
-        self.migrate_jobs(job_ids_to_remove, jobs_to_remove)
+        # jobs_to_remove = deepcopy(self.bins[bin_id].jobs[self.bins[bin_id].jobs != -1])
+        # job_ids_to_remove = deepcopy(self.bins[bin_id].job_ids[self.bins[bin_id].jobs != -1])
+	jobs_to_remove = self.bins[bin_id].get_jobs()
+	job_ids_to_remove = self.bins[bin_id].get_jobids()
+	#self.bins[bin_id].empty_bin()
+       	self.migrate_jobs(job_ids_to_remove, jobs_to_remove)
         '''
         try:
             self.migrate_jobs(jobs_to_remove)
@@ -50,10 +54,10 @@ class Collection:
                 raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
         '''
         # ONLY TO ASSIGNED LOCATION #
-        for i in range(len(jobs)):
+	for i in range(len(jobs)):
             job_assigned = False
             bin_num = self.reservation_map[job_ids[i]]
-            if self.bins[bin_num[0]].consume_reservation(jobs[i]):
+            if self.bins[bin_num].consume_reservation(jobs[i]):
                 job_assigned = True
             if not job_assigned:
                 raise ValueError("Insufficient space to migrate jobs. Simulation Failed.")
@@ -66,7 +70,7 @@ class Collection:
         skeleton = nx.barabasi_albert_graph(780)
         G = nx.empty_graph()
 
-    def firstFit(self, jobs, reservations):
+    def firstFit(self, job_ids, jobs, reservation_ids, reservations):
         if len(jobs) != len(reservations):
             raise IndexError("Length of jobs and reservations input lists do not match")
         for i in range(len(jobs)):
@@ -74,16 +78,16 @@ class Collection:
             job_assigned = False
             reservation_assigned = False
             assigned_to = -1
-            for j in range(len(self.bins[self.bins != np.array(None)])): # find an open spot for job
-                if self.bins[j].assign_job(jobs[i][0], jobs[i][1]):
+            for j in range(self.num_containers): # find an open spot for job
+                if self.bins[j].assign_job(job_ids[i], jobs[i]):
                     job_assigned = True
                     assigned_to = j
                     break
-            for j in range(len(self.bins[self.bins != np.array(None)])):
+            for j in range(self.num_containers):
                 reservation_assigned = False
-                if (j != assigned_to) and self.bins[j].assign_reservation(reservations[i][1]): #find a place for the reservation
+                if (j != assigned_to) and self.bins[j].assign_reservation(reservations[i]): #find a place for the reservation
                     reservation_assigned = True
-                    self.reservation_map[reservations[i][0]] = (j, self.bins[j].name)
+                    self.reservation_map[reservation_ids[i]] = j
                     break
             # IF NO SPACE FOR JOB OR RESERVATION
             if not job_assigned or not reservation_assigned: # then open a new container
@@ -92,37 +96,34 @@ class Collection:
                 self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                 self.num_containers += 1
                 if not job_assigned:
-                    if not self.bins[self.num_containers-1].assign_job(jobs[i][0], jobs[i][1]):
+                    if not self.bins[self.num_containers-1].assign_job(job_ids[i], jobs[i]):
                         raise ValueError("Job size exceeds every container's capacity")
                     if not reservation_assigned:
                         if self.num_containers == self.bin_capacity:
                             self.bins = np.concatenate((self.bins, np.empty(self.bin_capacity, dtype=object)), axis=0)
                         self.bins[self.num_containers] = Bin.Bin("Bin_"+str(self.num_containers))
                         self.num_containers += 1
-                        if not self.bins[self.num_containers-1].assign_reservation(reservations[i][1]):
+                        if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                             raise ValueError("Reservation size exceeds every container's capacity")
-                        self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
+                        self.reservation_map[reservation_ids[i]] = self.num_containers-1
                 elif not reservation_assigned:
-                    if not self.bins[self.num_containers-1].assign_reservation(reservations[i][1]):
+                    if not self.bins[self.num_containers-1].assign_reservation(reservations[i]):
                         raise ValueError("Reservation size exceeds every container's capacity")
-                    self.reservation_map[reservations[i][0]] = (self.num_containers-1, self.bins[self.num_containers-1].name)
+                    self.reservation_map[reservation_ids[i]] = self.num_containers-1
 
     def exhaustive_fail(self):
-        base = deepcopy(self.bins)
-        for i in range(len(self.bins[self.bins != np.array(None)])):
+        for i in range(self.num_containers):
+	    ids = self.bins[i].get_jobids()
+	    state = np.empty(len(ids),dtype=object)
+	    for j in range(len(ids)):
+	         state[j] = cPickle.dumps(self.bins[self.reservation_map[ids[j]]])
             try:
                 self.fail(i)
             except ValueError:
                 self.infeasible_solutions += 1
-                print "BIN ",i," IS RESPONSIBLE"
-            self.bins = deepcopy(base)
-        if self.infeasible_solutions != 0:
-            print self.reservation_map
-            for i in range(len(self.bins[self.bins != np.array(None)])):
-                print "Bin ",i
-                print self.bins[i].describe()
-            #self.plot_errythang()
-        return self.infeasible_solutions, len(self.bins[self.bins != np.array(None)])
+	    for j in range(len(ids)):
+                self.bins[self.reservation_map[ids[j]]] = cPickle.loads(state[j])
+        return self.infeasible_solutions, self.num_containers
 
     def plot_errythang(self):
         import matplotlib.pyplot as plt
@@ -143,12 +144,13 @@ class Collection:
 
     def run(self, _num_jobs, _reservation_percentage):
         # Jobs are represented as a triple (jobId, jobSize, isReservation)
-        test_jobs = zip(range(_num_jobs), self.dist_gen.generate_jobs(_num_jobs, distribution_type='uniform'), [False for x in range(_num_jobs)])
-        reservations = []
-        for job in test_jobs:
-            reservations.append((job[0], job[1]*_reservation_percentage, True))
-        self.firstFit(test_jobs, reservations)
-
+        np.random.seed()
+        job_ids = np.arange(_num_jobs, dtype=int)
+        reservation_ids = job_ids
+        jobs = self.dist_gen.generate_jobs(_num_jobs, distribution_type='uniform')
+        reservations = jobs * reservation_percentage
+        reservations = reservations.astype(int)
+        self.firstFit(job_ids, jobs, reservation_ids, reservations)
 
 def run_sim(_num_jobs, _reservation_percentage, _simulation_number):
     c = Collection()
@@ -167,16 +169,17 @@ if __name__ == "__main__":
     reservation_percentage = float(sys.argv[2])
     num_trials = int(sys.argv[3])
 
-    '''
-    pool = mp.Pool(processes=2)
-    procs = [pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)) for i in range(num_trials)]
+    pool = mp.Pool(processes=48)
+    procs = []
+    for i in range(num_trials):
+    	procs.append(pool.apply_async(run_sim, args=(num_jobs, reservation_percentage, i+1)))
     for i in range(len(procs)):
         output_array[i, 0], output_array[i, 1] = procs[i].get()
 
     '''
     for i in range(num_trials):
         output_array[i, 0], output_array[i, 1] = run_sim(num_jobs, reservation_percentage, i+1)
-
+    '''
     with open(sys.argv[4], 'w') as fout:
         for i in range(len(output_array)):
             fout.write("{:}, {:}\n".format(str(output_array[i, 0]), str(output_array[i, 1])))
